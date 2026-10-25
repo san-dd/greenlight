@@ -13,6 +13,8 @@ func (app *application) healthcheckHandler(w http.ResponseWriter, r *http.Reques
 			"version":     version,
 		},
 	}
+	// Add a 4 second delay.
+	//time.Sleep(15 * time.Second)
 	if err := app.writeJSON(w, http.StatusOK, env, nil); err != nil {
 		app.logger.Error(err.Error())
 		app.serverErrorResponse(w, r, err)

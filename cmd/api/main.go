@@ -6,7 +6,6 @@ import (
 	"flag"
 	"fmt"
 	"log/slog"
-	"net/http"
 	"os"
 	"time"
 
@@ -24,6 +23,11 @@ type config struct {
 		maxOpenConns int
 		maxIdleConns int
 		maxIdleTime  time.Duration
+	}
+	limiter struct {
+		rps     float64
+		brust   int
+		enabled bool
 	}
 }
 
@@ -43,6 +47,12 @@ func main() {
 	flag.IntVar(&cfg.db.maxOpenConns, "db-max-open-conns", 25, "PostgreSQL max open connections")
 	flag.IntVar(&cfg.db.maxIdleConns, "db-max-idle-conns", 25, "PostgreSQL max idle connections")
 	flag.DurationVar(&cfg.db.maxIdleTime, "db-max-idle-time", 15*time.Minute, "PostgreSQL max connection idle time")
+
+	//limiter config
+	flag.Float64Var(&cfg.limiter.rps, "limiter-rps", 2, "rate limiter max req per second")
+	flag.IntVar(&cfg.limiter.brust, "limiter-brust", 4, "rate limiter max brust")
+	flag.BoolVar(&cfg.limiter.enabled, "limiter-enabled", true, "enable rate limiter")
+
 	flag.Parse()
 	fmt.Println(cfg)
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
@@ -63,24 +73,10 @@ func main() {
 		models: data.NewModles(db),
 	}
 
-	// mux := http.NewServeMux()
-	// mux.HandleFunc("/v1/healthcheck", app.healthcheckHandler)
-
-	srv := &http.Server{
-		Addr:         fmt.Sprintf("localhost:%d", cfg.port),
-		Handler:      app.routes(),
-		IdleTimeout:  time.Minute,
-		WriteTimeout: 10 * time.Second,
-		ReadTimeout:  5 * time.Second,
-		ErrorLog:     slog.NewLogLogger(logger.Handler(), slog.LevelError),
+	if err := app.server(); err != nil {
+		logger.Error(err.Error())
+		os.Exit(1)
 	}
-
-	logger.Info("server starting", "addr", srv.Addr, "env", cfg.env)
-
-	err = srv.ListenAndServe()
-	logger.Error(err.Error())
-	os.Exit(1)
-
 }
 
 func openDB(cfg config) (*sql.DB, error) {
