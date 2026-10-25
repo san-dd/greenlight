@@ -44,6 +44,11 @@ func (app *application) server() error {
 		//creaate a context with 30 second timeout
 		ctx, cancle := context.WithTimeout(context.Background(), time.Second*30)
 		defer cancle()
+		// Call Wait() to block until our WaitGroup counter is zero --- essentially
+		// blocking until the background goroutines have finished. Then we return nil on
+		// the shutdownError channel, to indicate that the shutdown completed without
+		// any issues.
+		app.wg.Wait()
 		shutdownError <- srv.Shutdown(ctx)
 	}()
 

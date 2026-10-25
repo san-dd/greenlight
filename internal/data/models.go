@@ -13,11 +13,13 @@ var (
 type Models struct {
 	Movies MovieModel
 	Users  UserModel // Add a new Users field
+	Tokens TokenModel
 }
 
 func NewModles(db *sql.DB) Models {
 	return Models{
 		Movies: MovieModel{DB: db},
 		Users:  UserModel{DB: db}, // Add a new Users field
+		Tokens: TokenModel{DB: db},
 	}
 }

@@ -7,10 +7,12 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"sync"
 	"time"
 
 	_ "github.com/lib/pq"
 	"github.com/san-dd/greenlight/internal/data"
+	"github.com/san-dd/greenlight/internal/mailer"
 )
 
 const version = "1.0.0"
@@ -29,12 +31,21 @@ type config struct {
 		brust   int
 		enabled bool
 	}
+	smtp struct {
+		host     string
+		port     int
+		username string
+		password string
+		sender   string
+	}
 }
 
 type application struct {
 	config config
 	logger *slog.Logger
 	models data.Models
+	mailer *mailer.Mailer
+	wg     sync.WaitGroup
 }
 
 func main() {
@@ -53,6 +64,8 @@ func main() {
 	flag.IntVar(&cfg.limiter.brust, "limiter-brust", 4, "rate limiter max brust")
 	flag.BoolVar(&cfg.limiter.enabled, "limiter-enabled", true, "enable rate limiter")
 
+	// with your own Mailtrap credentials.
+
 	flag.Parse()
 	fmt.Println(cfg)
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
@@ -67,10 +80,17 @@ func main() {
 
 	logger.Info("database connection pool established")
 
+	mailer, err := mailer.New(cfg.smtp.host, cfg.smtp.port, cfg.smtp.username, cfg.smtp.password, cfg.smtp.sender)
+	if err != nil {
+		logger.Error(err.Error())
+		os.Exit(1)
+	}
+
 	app := &application{
 		config: cfg,
 		logger: logger,
 		models: data.NewModles(db),
+		mailer: mailer,
 	}
 
 	if err := app.server(); err != nil {
