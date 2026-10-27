@@ -18,9 +18,13 @@ import (
 	_ "github.com/lib/pq"
 	"github.com/san-dd/greenlight/internal/data"
 	"github.com/san-dd/greenlight/internal/mailer"
+	"github.com/san-dd/greenlight/internal/vcs"
 )
 
-const version = "1.0.0"
+// Make version a variable (rather than a constant) and set its value to vcs.Version().
+var (
+	version = vcs.Version()
+)
 
 type config struct {
 	port int
@@ -92,6 +96,15 @@ func main() {
 		cfg.cors.trustedOrigins = strings.Fields(val)
 		return nil
 	})
+	// Create a new version boolean flag with the default value of false.
+	displayVersion := flag.Bool("version", false, "Display version and exit")
+	flag.Parse()
+	// If the version flag value is true, then print out the version number and
+	// immediately exit.
+	if *displayVersion {
+		fmt.Printf("Version:\t%s\n", version)
+		os.Exit(0)
+	}
 
 	flag.Parse()
 	fmt.Println(cfg)

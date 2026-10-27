@@ -1,3 +1,4 @@
+SHELL := cmd.exe
 include .envrc
 # ==================================================================================== #
 # HELPERS
@@ -17,7 +18,7 @@ confirm:
 ## run/api: run the cmd/api application
 .PHONY: run/api
 run/api:
-	go run ./cmd/api -db-dsn=${GREENLIGHT_DB_DSN}
+	go run ./cmd/api -db-dsn=${GREENLIGHT_DB_DSN} -version
 ## db/psql: connect to the database using psql
 .PHONY: db/psql
 db/psql:
@@ -53,3 +54,11 @@ audit:
 	go tool staticcheck ./...
 	@echo 'Running tests...'
 	go test -race -vet=off ./..
+
+## build/api: build the cmd/api application
+## build/api: build the cmd/api application
+.PHONY: build/api
+build/api:
+	@echo 'Building cmd/api...'
+	go build -ldflags='-s -X main.version=${VERSION}' -o=./bin/api.exe ./cmd/api
+# GOOS=linux GOARCH=amd64 go build -ldflags='-s -X main.version=${VERSION}' -o=./bin/linux_amd64/api ./cmd/api
